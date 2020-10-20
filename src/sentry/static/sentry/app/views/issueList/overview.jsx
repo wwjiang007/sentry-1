@@ -50,7 +50,6 @@ const DEFAULT_SORT = 'date';
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
-const STATS_PERIODS = new Set(['14d', '24h']);
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 
 const IssueListOverview = createReactClass({
@@ -220,18 +219,9 @@ const IssueListOverview = createReactClass({
     return this.props.location.query.sort || DEFAULT_SORT;
   },
 
-  getDefaultGroupStatsPeriod() {
-    return this.props.organization.features.includes('dynamic-issue-counts')
-      ? 'auto'
-      : DEFAULT_GRAPH_STATS_PERIOD;
-  },
-
   getGroupStatsPeriod() {
     const currentPeriod = this.props.location.query.groupStatsPeriod;
-    return (this.props.organization.features.includes('dynamic-issue-counts')
-      ? DYNAMIC_COUNTS_STATS_PERIODS
-      : STATS_PERIODS
-    ).has(currentPeriod)
+    return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
   },
