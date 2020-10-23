@@ -6,7 +6,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {GlobalSelection, Group, NewQuery, Organization} from 'app/types';
+import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
@@ -60,7 +60,7 @@ type Props = {
   organization: Organization;
   query?: string;
   hasGuideAnchor?: boolean;
-  memberList?: any[];
+  memberList?: User[];
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -84,14 +84,17 @@ class StreamGroup extends React.Component<Props, State> {
 
   static defaultProps = defaultProps;
 
-  constructor(props: Props) {
-    super(props);
-    const data = GroupStore.get(props.id) as Group;
+  state: State = this.getInitialState();
 
-    this.state = {
+  getInitialState(): State {
+    const {id, useFilteredStats} = this.props;
+
+    const data = GroupStore.get(id) as Group;
+
+    return {
       data: {
         ...data,
-        filtered: props.useFilteredStats ? data.filtered : undefined,
+        filtered: useFilteredStats ? data.filtered : undefined,
       },
     };
   }
@@ -428,6 +431,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
+      // @ts-expect-error allow target _blank for this link to open in new window
       <Link to={to} target="_blank">
         <div {...p}>{children}</div>
       </Link>
