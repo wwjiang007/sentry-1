@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-import sentry_sdk
 
 from django import forms
 
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.rules")
 
@@ -32,31 +30,6 @@ class AzureDevopsCreateTicketAction(IntegrationEventAction):
         super(AzureDevopsCreateTicketAction, self).__init__(*args, **kwargs)
         # TODO 2.1 Add form_fields
         self.form_fields = {}
-
-    def after(self, event, state):
-        integration_id = None
-        try:
-            integration = Integration.objects.get(
-                provider="vsts", organizations=self.project.organization, id=integration_id
-            )
-        except Integration.DoesNotExist:
-            # Integration removed, rule still active.
-            return
-
-        def send_notification(event, futures):
-            with sentry_sdk.start_transaction(
-                op=u"azure_devops.send_notification",
-                name=u"AzureDevopsSendNotification",
-                sampled=1.0,
-            ) as span:
-                span.set_tag("todo", "todo")
-
-        key = u"azure_devops:{}:{}".format(integration.id, "TODO")
-
-        metrics.incr(
-            "notifications.sent", instance="azure_devops.notification", skip_internal=False
-        )
-        yield self.future(send_notification, key=key)
 
     def render_label(self):
         integration_id = None
