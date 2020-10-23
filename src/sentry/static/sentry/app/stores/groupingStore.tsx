@@ -79,7 +79,7 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
   ) => Array<any>;
   isAllUnmergedSelected: () => boolean;
   onFetch: (
-    props: Array<{dataKey: string; endpoint: string; queryParams?: string}>
+    toFetchArray?: Array<{dataKey: string; endpoint: string; queryParams?: string}>
   ) => Promise<any>;
   onToggleMerge: (id: string) => void;
   onToggleUnmerge: (props: [string, string]) => void;
@@ -130,6 +130,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
   init() {
     const state = defaultState;
+    this.api = new Client();
 
     Object.entries(state).forEach(([key, value]) => {
       this[key] = value;
@@ -242,13 +243,15 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
     return Promise.all(promises).then(
       resultsArray => {
-        (resultsArray as Array<{dataKey: string; data: any; links: any}>).forEach(
-          ({dataKey, data, links}) => {
-            const items = data.map(responseProcessors[dataKey]);
-            this[`${dataKey}Items`] = items;
-            this[`${dataKey}Links`] = links;
-          }
-        );
+        (resultsArray as Array<{
+          dataKey: string;
+          data: Array<[{id: string}, Record<string, number | null>]>;
+          links?: string | null;
+        }>).forEach(({dataKey, data, links}) => {
+          const items = data.map(responseProcessors[dataKey]);
+          this[`${dataKey}Items`] = items;
+          this[`${dataKey}Links`] = links;
+        });
 
         this.loading = false;
         this.error = false;
@@ -269,7 +272,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     // Don't do anything if item is busy
     const state = this.mergeState.has(id) ? this.mergeState.get(id) : undefined;
 
-    console.log('state', this.mergeState);
     if (state?.busy === true) {
       return;
     }
@@ -387,11 +389,12 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     const promise = new Promise(resolve => {
       // Disable merge button
       const {orgId, groupId} = params;
+
       this.api.merge(
         {
           orgId,
           projectId: projectId || params.projectId,
-          itemIds: [...ids, Number(groupId)] as Array<number>,
+          itemIds: [...ids, groupId] as Array<string>,
           query,
         },
         {
