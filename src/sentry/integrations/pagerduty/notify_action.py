@@ -8,8 +8,8 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import ObjectStatus
-from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
@@ -62,10 +62,11 @@ class PagerDutyNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class PagerDutyNotifyServiceAction(EventAction):
+class PagerDutyNotifyServiceAction(IntegrationEventAction):
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
     prompt = "Send a PagerDuty notification"
+    provider = "pagerduty"
 
     def __init__(self, *args, **kwargs):
         super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -76,9 +77,6 @@ class PagerDutyNotifyServiceAction(EventAction):
             },
             "service": {"type": "choice", "choices": self.get_services()},
         }
-
-    def is_enabled(self):
-        return self.get_integrations().exists()
 
     def after(self, event, state):
         integration_id = self.get_option("account")

@@ -6,7 +6,7 @@ import sentry_sdk
 from django import forms
 
 from sentry.models import Integration
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.rules")
@@ -22,19 +22,16 @@ class AzureDevopsNotifyServiceForm(forms.Form):
         return super(AzureDevopsNotifyServiceForm, self).clean()
 
 
-class AzureDevopsCreateTicketAction(EventAction):
+class AzureDevopsCreateTicketAction(IntegrationEventAction):
     form_cls = AzureDevopsNotifyServiceForm
     label = u"TODO Create a {name} AzureDevops workitem"
     prompt = "Create a AzureDevops workitem"
+    provider = "vsts"
 
     def __init__(self, *args, **kwargs):
         super(AzureDevopsCreateTicketAction, self).__init__(*args, **kwargs)
         # TODO 2.1 Add form_fields
         self.form_fields = {}
-
-    def is_enabled(self):
-        # TODO move to superclass
-        return self.get_integrations().exists()
 
     def after(self, event, state):
         integration_id = None
@@ -71,9 +68,3 @@ class AzureDevopsCreateTicketAction(EventAction):
             integration_name = "[removed]"
 
         return self.label.format(name=integration_name)
-
-    def get_integrations(self):
-        return Integration.objects.filter(provider="vsts", organizations=self.project.organization)
-
-    def get_form_instance(self):
-        return self.form_cls(self.data, integrations=self.get_integrations())

@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.rules.actions.base import EventAction
 from sentry.models import Integration
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.utils import metrics
 
 from .card_builder import build_group_card
@@ -53,10 +53,11 @@ class MsTeamsNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class MsTeamsNotifyServiceAction(EventAction):
+class MsTeamsNotifyServiceAction(IntegrationEventAction):
     form_cls = MsTeamsNotifyServiceForm
     label = u"Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
+    provider = "msteams"
 
     def __init__(self, *args, **kwargs):
         super(MsTeamsNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -67,9 +68,6 @@ class MsTeamsNotifyServiceAction(EventAction):
             },
             "channel": {"type": "string", "placeholder": "i.e. General"},
         }
-
-    def is_enabled(self):
-        return self.get_integrations().exists()
 
     def after(self, event, state):
         integration_id = self.get_option("team")
@@ -105,11 +103,6 @@ class MsTeamsNotifyServiceAction(EventAction):
             integration_name = "[removed]"
 
         return self.label.format(team=integration_name, channel=self.get_option("channel"),)
-
-    def get_integrations(self):
-        return Integration.objects.filter(
-            provider="msteams", organizations=self.project.organization
-        )
 
     def get_form_instance(self):
         return self.form_cls(

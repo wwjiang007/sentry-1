@@ -8,10 +8,10 @@ import sentry_sdk
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.rules.actions.base import EventAction
-from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.utils import metrics, json
 
 from .client import SlackClient
 from .utils import (
@@ -123,10 +123,11 @@ class SlackNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class SlackNotifyServiceAction(EventAction):
+class SlackNotifyServiceAction(IntegrationEventAction):
     form_cls = SlackNotifyServiceForm
     label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
     prompt = "Send a Slack notification"
+    provider = "slack"
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -138,9 +139,6 @@ class SlackNotifyServiceAction(EventAction):
             "channel": {"type": "string", "placeholder": "i.e #critical"},
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
-
-    def is_enabled(self):
-        return self.get_integrations().exists()
 
     def after(self, event, state):
         integration_id = self.get_option("workspace")
@@ -217,9 +215,6 @@ class SlackNotifyServiceAction(EventAction):
 
     def get_tags_list(self):
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_integrations(self):
-        return Integration.objects.filter(provider="slack", organizations=self.project.organization)
 
     def get_form_instance(self):
         return self.form_cls(
